@@ -78,7 +78,7 @@ find_optimal_locations <- function(county, radius, n_pharmacies) {
   dummy_facility <- tibble(gln = 999999999, long = 0, lat = 0)
   
   # Run MCLP optimization
-  model <- maxcovr::max_coverage(
+  model <- max_coverage(
     existing_facility = dummy_facility,
     proposed_facility = df_apotek |> 
       filter(lan == county, apoteksombud == 0),
@@ -158,7 +158,7 @@ generate_isochrones <- function(pharmacies, distances) {
   
   isochrones_list <- chunks |> 
     map(\(chunk) {
-      openrouteservice::ors_isochrones(
+      ors_isochrones(
         chunk |> select(long, lat),
         profile = "driving-car",
         range_type = "distance",
@@ -324,4 +324,5 @@ pharmacy_scenarios <- seq(50, 700, by = 50)
 
 results_list <- map(pharmacy_scenarios, analyze_accessibility)
 
+beep(3)
 message("Analysis complete!")

@@ -1,28 +1,59 @@
 # Swedish Pharmacy Accessibility Analysis
 
-**Impact**: This analysis established the 300-pharmacy threshold cited in proposed Swedish pharmacy legislation.
+**Impact**: The original 2023 analysis established a 300-pharmacy threshold cited in proposed Swedish pharmacy legislation. The goal is to ensure accessibility to medicines for all of Sweden in case of crisis or war.
 
 ## Overview
 
-This project analyzes optimal pharmacy placement across Sweden to maximize population accessibility. Using geographic optimization and accessibility metrics, the analysis determined that approximately **300 strategically-placed pharmacies** are necessary to maintain adequate nationwide coverage.
+This repository contains a **2025 reproduction** of the pharmacy accessibility analysis originally conducted at TLV (Dental and Pharmaceutical Benefits Agency) in 2023. The analysis uses the same methodology to determine optimal pharmacy placement across Sweden to maximize population accessibility.
 
-The findings were published in a TLV report and have directly influenced Swedish pharmacy policy.
+### Important Notes
 
-## Key Findings
+⚠️ **This is a reproduction using current (2025) open-source data, not the original 2023 analysis.**
+
+**Key Differences:**
+- **Original (2023)**: Used internal TLV data with actual pharmacy sales from May 2023
+- **This version (2025)**: Uses publicly available Pipos pharmacy data (November 2025) and SCB population data (2024)
+- **Results**: Will differ from the published 2023 report due to:
+  - Different pharmacy landscape (2025 vs 2023)
+  - Different data sources (open data vs internal TLV data)
+  - Updated population distribution (2024 vs 2023)
+
+**Purpose of this repository:**
+- Demonstrates the analytical methodology used in the original study
+- Provides a fully reproducible analysis using open data
+- Serves as a portfolio example of geospatial optimization and policy analysis
+- Allows others to apply similar methods to pharmacy accessibility analysis
+
+The original methodology and findings were published in a [TLV report (2023)][TLV_REPORT_URL] and influenced Swedish pharmacy policy.
+
+**Related Resources:**
+- 📄 [TLV Report (2023) - Original Analysis][TLV_REPORT_URL]
+- 💊 [Pipos - Swedish Pharmacy Data Source][PIPOS_URL]
+- 🗺️ [OpenRouteService - Routing API][ORS_URL]
+
+
+## Key Findings (Original 2023 Analysis)
 
 - **300 pharmacies** identified as the critical threshold for maintaining national accessibility
 - **XX% of population** within 10km driving distance with 300 pharmacies
 - **Geographic optimization** using Maximum Coverage Location Problem (MCLP)
 - Analysis informed **proposed pharmacy legislation** in Sweden
 
+*Note: The results from this 2025 reproduction will differ numerically from the original 2023 analysis due to updated data sources, but the methodology and approach remain identical.*
+
 ## Methodology
 
 ### 1. Data Sources (All Open Data)
 
-- **Population Grid**: 1km² grid squares covering Sweden with population counts (Statistics Sweden)
-- **Pharmacy Locations**: All pharmacies with sales in May 2023, including coordinates
-- **Geographic Data**: Swedish administrative boundaries (counties, municipalities)
-- **Road Network**: OpenStreetMap via OpenRouteService API
+This 2025 reproduction uses publicly available data:
+
+- **Population Grid**: 1km² grid squares covering Sweden with population counts ([Statistics Sweden][SCB_URL], 2024)
+- **Pharmacy Locations**: Current pharmacy locations from [Pipos][PIPOS_URL] (November 2025), including coordinates
+- **Geographic Data**: Swedish administrative boundaries (counties, municipalities) via swemaps2 package
+- **Road Network**: OpenStreetMap via [OpenRouteService API][ORS_URL]
+
+*The original 2023 analysis used internal TLV pharmacy sales data from May 2023.*
+
 
 ### 2. Optimization Approach
 
@@ -60,23 +91,25 @@ Population Grid (1km²) + Pharmacy Locations
 
 ```
 pharmacy-accessibility-sweden/
-├── README.md                           # This file
-├── pharmacy_accessibility_analysis.R   # Main analysis script
-├── descriptive_statistics.R            # Summary statistics & visualization
+├── README.md                                    # Project overview and documentation
+├── .env.example                                 # Template for API keys
+├── scripts/
+│   ├── prepare_input_files.R                   # Step 1: Process raw data
+│   ├── pharmacy_accessibility_analysis.R       # Step 2: Run MCLP analysis
+│   └── descriptive_statistics.R                # Step 3: Generate summaries
 ├── data/
-│   ├── raw/                           # Original data files
-│   │   ├── population_grid.csv        # 1km² population grid
-│   │   └── pharmacy_locations.csv     # All pharmacies with coordinates
-│   └── results/                       # Analysis outputs
-│       └── accessibility_N_pharmacies.rds
-├── outputs/
-│   ├── coverage_by_pharmacy_count.png
-│   ├── marginal_benefit.png
-│   ├── distance_distribution.png
-│   ├── scenario_comparison.csv
-│   └── county_summary_300_pharmacies.csv
-└── docs/
-    └── tlv_report.pdf                 # Published TLV report (link)
+│   ├── raw/                                    # Raw and prepared data (not in git)
+│   │   ├── befolkning_1km_2024.gpkg           # SCB population grid (download)
+│   │   ├── pipos_apoteksvaror_2025-11-01.xlsx # Pipos pharmacy data (download)
+│   │   ├── df_apotek.rds                      # Prepared pharmacies (generated)
+│   │   └── df_rutor.rds                       # Prepared population grid (generated)
+│   └── results/                                # Analysis outputs (not in git)
+│       └── accessibility_N_pharmacies.rds      # Results for N pharmacies
+└── outputs/                                    # Plots and tables (not in git)
+    ├── coverage_by_pharmacy_count.png
+    ├── marginal_benefit.png
+    ├── distance_distribution.png
+    └── county_summary_300_pharmacies.csv
 ```
 
 ## Requirements
@@ -85,41 +118,70 @@ pharmacy-accessibility-sweden/
 
 ```r
 # Core analysis
-tidyverse      # Data manipulation and visualization
-sf             # Spatial data handling
-nngeo          # Nearest neighbor operations
-geosphere      # Geographic distance calculations
-maxcovr        # Maximum coverage optimization
+tidyverse        # Data manipulation and visualization
+sf               # Spatial data handling
+nngeo            # Nearest neighbor operations
+geosphere        # Geographic distance calculations
+maxcovr          # Maximum coverage optimization
+swemaps2         # Swedish administrative boundaries
+
+# Data handling
+readxl           # Reading Excel files
+janitor          # Data cleaning
 
 # API access
-openrouteservice  # Driving distance calculations
+openrouteservice # Driving distance calculations
 ```
 
 ### API Setup
 
-For driving distance calculations, you need an OpenRouteService API key:
+For driving distance calculations, you need an [OpenRouteService][ORS_URL] API key:
 
-1. Sign up at https://openrouteservice.org/
+1. Sign up at [OpenRouteService][ORS_URL]
 2. Get your free API key
-3. Set in R: `Sys.setenv(ORS_API_KEY = "your_key_here")`
+3. Copy `.env.example` to `.env` and add your key:
+   ```bash
+   cp .env.example .env
+   # Edit .env and replace 'your_api_key_here' with your actual key
+   ```
+
+The analysis script automatically loads the API key from the `.env` file.
 
 ## Usage
 
-### 1. Prepare Data
+### Step 1: Download Data
 
-Ensure you have two datasets ready:
+Download the required open data files:
+
+1. **Population grid** from [Statistics Sweden (SCB)][SCB_URL]:
+   - Download from: [SCB Open Geodata][SCB_URL]
+   - File: `befolkning_1km_2024.gpkg`
+   - Save to: `data/raw/`
+
+2. **Pharmacy locations** from [Pipos][PIPOS_URL]:
+   - Download from: [Pipos Service Analysis][PIPOS_URL]
+   - File: Current pharmacy list Excel file
+   - Save to: `data/raw/`
+
+### Step 2: Prepare Data
+
+Process the raw data files:
 
 ```r
-# df_apotek: All pharmacies
-# Columns: gln, lat, long, lan, kommun, apotek, apoteksombud
+setwd("scripts")  # Work from scripts directory
+source("prepare_input_files.R")
 
-# df_rutor: Population grid (1km²)
-# Columns: lat, long, lan, kommun, pop
+# This creates:
+# - data/raw/df_apotek.rds (pharmacies with pharmacy_id, coordinates, regions)
+# - data/raw/df_rutor.rds (population grid with coordinates, regions)
 ```
 
-### 2. Run Main Analysis
+### Step 3: Run Analysis
+
+Analyze pharmacy accessibility scenarios:
 
 ```r
+setwd("scripts")  # Work from scripts directory
 source("pharmacy_accessibility_analysis.R")
 
 # Analyze specific scenarios
@@ -128,37 +190,47 @@ result_400 <- analyze_accessibility(400)
 
 # Or run multiple scenarios
 results_all <- map(seq(50, 700, by = 50), analyze_accessibility)
+
+# Results saved to: data/results/accessibility_N_pharmacies.rds
 ```
 
-### 3. Calculate Statistics
+### Step 4: Generate Statistics
+
+Calculate summary statistics and create visualizations:
 
 ```r
+setwd("scripts")
 source("descriptive_statistics.R")
 
-# Generates:
+# Generates in outputs/:
 # - National and regional summaries
-# - Visualizations
-# - Comparison across scenarios
+# - Coverage plots
+# - Distance distributions
+# - Comparison tables
 ```
 
-## Key Results (300 Pharmacies)
+## Key Results (2025 Reproduction - 300 Pharmacies)
 
 | Metric | Value |
 |--------|-------|
-| Mean distance to pharmacy | X.X km |
-| Median distance | X.X km |
-| Population within 10km (driving) | XX% |
-| Population within 20km (driving) | XX% |
-| Grid squares analyzed | ~XX,XXX |
+| Mean distance to pharmacy | *To be calculated* |
+| Median distance | *To be calculated* |
+| Population within 10km (driving) | *To be calculated* |
+| Population within 20km (driving) | *To be calculated* |
+| Grid squares analyzed | *To be calculated* |
 
-## Policy Impact
+*Results will be updated after running the analysis with 2025 data. These will differ from the original 2023 findings due to changes in pharmacy landscape and population distribution.*
 
-This analysis directly contributed to:
+## Policy Impact (Original 2023 Analysis)
 
-1. **TLV Report (2023)**: Published methodology and findings
+The original analysis conducted at TLV directly contributed to:
+
+1. **[TLV Report (2023)][TLV_REPORT_URL]**: Published methodology and findings
 2. **Legislative Proposal**: 300-pharmacy threshold cited in proposed pharmacy legislation
 3. **Ministerial Broadcast**: Findings featured in nationwide policy discussion
 4. **Ongoing Policy**: Informs emergency pharmacy placement decisions
+
+*This 2025 reproduction demonstrates the methodology but was not used for policy decisions. The policy impact reflects the original 2023 work. Read the [original report here][TLV_REPORT_URL].*
 
 ## Limitations & Caveats
 
@@ -177,11 +249,19 @@ This analysis directly contributed to:
 
 ## Citation
 
-If using this methodology, please cite:
+If using this methodology or referencing the original analysis:
 
+**Original TLV Report (2023):**
 ```
 Samuelsson, J. (2023). Geographic Analysis of Pharmacy Accessibility in Sweden.
 Dental and Pharmaceutical Benefits Agency (TLV). Stockholm, Sweden.
+```
+
+**This Reproduction (2025):**
+```
+Samuelsson, J. (2025). Swedish Pharmacy Accessibility Analysis:
+A Reproduction Using Open Data. GitHub Repository.
+https://github.com/jonsam19/pharmacy-accessibility-sweden
 ```
 
 ## Author
@@ -189,14 +269,21 @@ Dental and Pharmaceutical Benefits Agency (TLV). Stockholm, Sweden.
 **Jonas Samuelsson**  
 Data Analyst, Dental and Pharmaceutical Benefits Agency (TLV)  
 Stockholm, Sweden  
-[GitHub](https://github.com/jonsam19) | [LinkedIn](https://linkedin.com/in/jonas-samuelsson)
+[GitHub](https://github.com/jonsam19) | [LinkedIn](https://linkedin.com/in/jonsam19)
 
 ## License
 
-Code: MIT License (open source)  
-Data: Public data sources, see individual dataset licenses  
-Report: © TLV 2023
+**Code:** MIT License - see [LICENSE](LICENSE) file for details
+**Data:** Public data sources - see [data/README.md](data/README.md) for individual licenses
+**Methodology:** Based on analysis originally conducted at TLV (Dental and Pharmaceutical Benefits Agency), 2023
+**This Reproduction:** 2025, using open data
 
 ---
 
 *This analysis demonstrates how geographic optimization and open data can directly influence public policy to improve healthcare accessibility for millions of people.*
+
+<!-- Link References -->
+[TLV_REPORT_URL]: https://www.tlv.se/download/18.36ee6fe218c8adcaa227f01b/1704182347630/Starkt_formaga_p%C3%A5_apoteksmarknaden-slutrapport_2023.pdf
+[PIPOS_URL]: https://pipos.se/vara-tjanster/serviceanalys
+[ORS_URL]: https://openrouteservice.org/
+[SCB_URL]: https://www.scb.se/vara-tjanster/oppna-data/oppna-geodata/statistik-pa-rutor/

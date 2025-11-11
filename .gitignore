@@ -4,10 +4,11 @@
 .env.*.local
 
 # Data directories
-data/raw/*.rds           # Prepared data files (large)
-data/raw/*.feather       # Feather format files (if any)
+data/raw/*               # Raw downloaded data files (large)
+data/processed/          # Processed data files (regenerable)
 data/results/            # Analysis output files
 !data/raw/.gitkeep       # Keep directory structure
+!data/processed/.gitkeep # Keep directory structure
 !data/results/.gitkeep   # Keep directory structure
 
 # Output files
@@ -36,3 +37,5 @@ Thumbs.db
 
 # Claude Code settings (keep local only)
 .claude/settings.local.json
+
+misc/

@@ -6,9 +6,10 @@ This directory contains all data files used in the Swedish Pharmacy Accessibilit
 
 ```
 data/
-├── raw/                           # Raw source data and prepared datasets
+├── raw/                           # Raw source data (downloaded files only)
 │   ├── befolkning_1km_2024.gpkg  # SCB population grid (download)
-│   ├── pipos_apoteksvaror_*.xlsx # Pipos pharmacy data (download)
+│   └── pipos_apoteksvaror_*.xlsx # Pipos pharmacy data (download)
+├── processed/                     # Processed datasets ready for analysis (generated)
 │   ├── df_apotek.rds             # Prepared pharmacy data (generated)
 │   └── df_rutor.rds              # Prepared population grid (generated)
 └── results/                       # Analysis output files (generated)
@@ -44,7 +45,7 @@ data/
 - Pharmacy names and addresses
 - Coordinates (SWEREF99 TM, EPSG:3006)
 - Service types (Apotek vs Apoteksombud)
-- Operating organizations
+- Operating organisations
 
 ### 3. Swedish Administrative Boundaries
 
@@ -64,7 +65,7 @@ Processed pharmacy data ready for analysis.
 
 **Columns:**
 - `pharmacy_id` (integer): Unique identifier for each pharmacy
-- `huvudman` (character): Operating organization
+- `huvudman` (character): Operating organisation
 - `namn` (character): Pharmacy name
 - `adress` (character): Street address
 - `postnummer` (character): Postal code
@@ -118,9 +119,9 @@ This project uses **RDS format** (.rds) for prepared datasets:
 For reproducibility and storage efficiency, the following are excluded from version control (see `.gitignore`):
 
 - ✅ **Included:** `.gitkeep` files (maintain directory structure)
-- ❌ **Excluded:** `data/raw/*.rds` (prepared datasets, large files)
+- ❌ **Excluded:** `data/raw/*` (raw data files, downloadable from sources)
+- ❌ **Excluded:** `data/processed/` (processed datasets, regenerable from raw data)
 - ❌ **Excluded:** `data/results/` (analysis outputs, regenerable)
-- ❌ **Excluded:** Raw data files (downloadable from sources)
 
 ## Reproducing the Data
 
@@ -129,7 +130,7 @@ To reproduce the analysis data:
 1. Download raw data files (see sources above)
 2. Place files in `data/raw/`
 3. Run `scripts/prepare_input_files.R`
-4. Prepared datasets will be created in `data/raw/`
+4. Processed datasets will be created in `data/processed/`
 
 ## Data Privacy
 

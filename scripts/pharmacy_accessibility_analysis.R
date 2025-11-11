@@ -5,13 +5,7 @@
 # Coverage Location Problem (MCLP) and calculates population accessibility
 # via both straight-line and driving distances.
 #
-# This is a 2025 reproduction using open data of analysis originally conducted
-# at TLV in 2023. Uses current Pipos pharmacy data (2025) and SCB population
-# data (2024).
-#
-# Author: Jonas Samuelsson
-# Original analysis: TLV (Dental and Pharmaceutical Benefits Agency), 2023
-# This reproduction: 2025
+# Run this after prepare_input_files.R
 # =============================================================================
 
 # Libraries -------------------------------------------------------------------
@@ -24,8 +18,10 @@ library(openrouteservice)
 
 # Configuration ---------------------------------------------------------------
 # Load environment variables from .env file
-if (file.exists("../.env")) {
-  readRenviron("../.env")
+env_file <- if (file.exists(".env")) ".env" else if (file.exists("../.env")) "../.env" else NULL
+
+if (!is.null(env_file)) {
+  readRenviron(env_file)
 }
 
 # Validate and set OpenRouteService API key
@@ -44,10 +40,13 @@ message("  ✓ OpenRouteService API key configured")
 # Load prepared datasets (run scripts/prepare_input_files.R first)
 message("Loading data...")
 
-df_apotek <- read_rds("../data/raw/df_apotek.rds")
+# Determine data directory path (handle running from scripts/ or root)
+data_dir <- if (dir.exists("data/processed")) "data/processed" else "../data/processed"
+
+df_apotek <- read_rds(file.path(data_dir, "df_apotek.rds"))
 message(sprintf("  ✓ Loaded %d pharmacies", nrow(df_apotek)))
 
-df_rutor <- read_rds("../data/raw/df_rutor.rds") |>
+df_rutor <- read_rds(file.path(data_dir, "df_rutor.rds")) |>
   as_tibble() |>
   select(-sp_geometry)
 message(sprintf("  ✓ Loaded %d populated grid squares (population: %s)",
@@ -91,10 +90,10 @@ message("  ✓ Data validation passed")
 
 # Helper Functions ------------------------------------------------------------
 #
-# The analysis uses 5 helper functions called by analyze_accessibility():
+# The analysis uses 5 helper functions called by analyse_accessibility():
 #
 # 1. allocate_pharmacies()              - Distribute pharmacies by county population
-# 2. find_optimal_locations()           - MCLP optimization within each county
+# 2. find_optimal_locations()           - MCLP optimisation within each county
 # 3. calculate_straight_line_distances() - Haversine/Vincenty distances to nearest pharmacy
 # 4. generate_isochrones()              - OpenRouteService driving distance polygons
 # 5. calculate_driving_distances()      - Accessibility within driving distance bands
@@ -141,30 +140,37 @@ allocate_pharmacies <- function(df, n) {
 
 
 #' Find optimal pharmacy locations using MCLP
-#' 
+#'
 #' Uses Maximum Coverage Location Problem to identify pharmacy locations
-#' that maximize population coverage within specified radius
-#' 
+#' that maximise population coverage within specified radius
+#'
 #' @param county County code
-#' @param radius Coverage radius in meters (e.g., 10000 for 10km)
+#' @param radius Coverage radius in metres (e.g., 10000 for 10km)
 #' @param n_pharmacies Number of pharmacies to place
 #' @return Vector of selected pharmacy IDs
 find_optimal_locations <- function(county, radius, n_pharmacies) {
 
   # Create dummy existing facility (maxcovr package requirement)
   dummy_facility <- tibble(pharmacy_id = 999999999, long = 0, lat = 0)
-  
-  # Run MCLP optimization
+
+  # Prepare proposed facilities and users
+  proposed_pharmacies <- df_apotek |>
+    filter(lan == county) |>
+    select(pharmacy_id, lat, long)
+
+  users <- df_rutor |>
+    filter(lan == county) |>
+    select(id, lat, long)
+
+  # Run MCLP optimisation
   model <- max_coverage(
     existing_facility = dummy_facility,
-    proposed_facility = df_apotek |> 
-      filter(lan == county),
-    user = df_rutor |> 
-      filter(lan == county),
+    proposed_facility = proposed_pharmacies,
+    user = users,
     n_added = n_pharmacies,
     distance_cutoff = radius
   )
-  
+
   # Extract selected pharmacy IDs
   model$facility_selected[[1]] |>
     pull(pharmacy_id)
@@ -206,14 +212,14 @@ calculate_straight_line_distances <- function(pop_grid, pharmacies) {
     )
   
   # Calculate precise distance using Vincenty ellipsoid
-  pop_grid <- pop_grid |> 
-    rowwise() |> 
+  pop_grid <- pop_grid |>
+    rowwise() |>
     mutate(
-      distance_km = distVincentyEllipsoid(
-        p1 = c(long_grid, lat_grid), 
+      straight_line_distance_km = distVincentyEllipsoid(
+        p1 = c(long_grid, lat_grid),
         p2 = c(long_pharmacy, lat_pharmacy)
       ) / 1000  # Convert to km
-    ) |> 
+    ) |>
     ungroup()
   
   pop_grid
@@ -221,22 +227,27 @@ calculate_straight_line_distances <- function(pop_grid, pharmacies) {
 
 
 #' Generate driving distance isochrones
-#' 
+#'
 #' Creates isochrones (areas reachable within specific driving distances)
 #' around pharmacies using OpenRouteService
-#' 
+#'
 #' @param pharmacies Data frame with pharmacy locations
-#' @param distances Vector of distances in meters (e.g., c(5000, 10000, 20000))
+#' @param distances Vector of distances in metres (e.g., c(5000, 10000, 20000))
 #' @return sf object with isochrones
 generate_isochrones <- function(pharmacies, distances) {
 
   # OpenRouteService has rate limits, so process in chunks of 3
   chunks <- split(pharmacies, ceiling(seq_along(pharmacies$pharmacy_id) / 3))
   
-  isochrones_list <- chunks |> 
+  isochrones_list <- chunks |>
     map(\(chunk) {
+      # Convert to matrix format: [longitude, latitude]
+      coords <- chunk |>
+        select(long, lat) |>
+        as.matrix()
+
       ors_isochrones(
-        chunk |> select(long, lat),
+        coords,
         profile = "driving-car",
         range_type = "distance",
         range = distances,
@@ -258,8 +269,8 @@ generate_isochrones <- function(pharmacies, distances) {
 #' @param pop_grid Population grid with calculated straight-line distances
 #' @return Data frame with driving distance accessibility indicators
 calculate_driving_distances <- function(pharmacies, pop_grid) {
-  
-  # Define distance bands (in meters)
+
+  # Define distance bands (in metres)
   distance_bands <- c(5000, 10000, 20000, 30000, 40000, 50000)
   
   # Generate isochrones
@@ -323,19 +334,19 @@ calculate_driving_distances <- function(pharmacies, pop_grid) {
 # Main Analysis Function ------------------------------------------------------
 
 #' Run complete accessibility analysis for n pharmacies
-#' 
+#'
 #' Main workflow that:
 #' 1. Allocates pharmacies across counties by population
 #' 2. Finds optimal locations using MCLP (10km radius)
 #' 3. Calculates straight-line distances
 #' 4. Calculates driving distance accessibility
 #' 5. Saves results
-#' 
-#' @param n_pharmacies Total number of pharmacies to analyze
+#'
+#' @param n_pharmacies Total number of pharmacies to analyse
 #' @return Saves results to data/results/ directory
-analyze_accessibility <- function(n_pharmacies) {
-  
-  message(sprintf("Analyzing accessibility with %d pharmacies...", n_pharmacies))
+analyse_accessibility <- function(n_pharmacies) {
+
+  message(sprintf("Analysing accessibility with %d pharmacies...", n_pharmacies))
   
   # Step 1: Allocate pharmacies across counties
   county_allocation <- df_rutor |> 
@@ -383,7 +394,8 @@ analyze_accessibility <- function(n_pharmacies) {
   message("  Calculated driving distance accessibility")
   
   # Step 6: Save results
-  output_dir <- "../data/results"
+  # Determine output directory path (handle running from scripts/ or root)
+  output_dir <- if (dir.exists("data")) "data/results" else "../data/results"
   if (!dir.exists(output_dir)) {
     dir.create(output_dir, recursive = TRUE)
   }
@@ -404,19 +416,15 @@ analyze_accessibility <- function(n_pharmacies) {
 #
 # Note: Each scenario takes significant time due to OpenRouteService API calls.
 # The 300-pharmacy scenario is recommended as the starting point.
-
-# # Single scenario (recommended to start)
-# result_300 <- analyze_accessibility(300)
 #
-# # Additional scenarios
-# result_200 <- analyze_accessibility(200)
-# result_400 <- analyze_accessibility(400)
+# # Single scenario (recommended to start)
+# result_300 <- analyse_accessibility(300)
 #
 # # Full analysis (all scenarios from 50 to 700 by increments of 50)
 # # WARNING: This will take several hours to complete!
-# pharmacy_scenarios <- seq(50, 700, by = 50)
-# results_list <- map(pharmacy_scenarios, analyze_accessibility)
+pharmacy_scenarios <- seq(50, 700, by = 50)
+results_list <- map(pharmacy_scenarios, analyse_accessibility)
 #
 # message("Analysis complete!")
 
-# Script is now ready. Call analyze_accessibility() with your desired number of pharmacies.
+# Script is now ready. Call analyse_accessibility() with your desired number of pharmacies.

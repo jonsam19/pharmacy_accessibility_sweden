@@ -9,10 +9,9 @@
 # - Swedish administrative boundaries (swemaps2)
 #
 # Outputs:
-# - data/raw/df_apotek.rds: Prepared pharmacy locations with coordinates
-# - data/raw/df_rutor.rds: Prepared population grid with administrative regions
+# - data/processed/df_apotek.rds: Prepared pharmacy locations with coordinates
+# - data/processed/df_rutor.rds: Prepared population grid with administrative regions
 #
-# This is part of a 2025 reproduction of analysis originally conducted at TLV.
 # =============================================================================
 
 library(tidyverse)
@@ -28,7 +27,9 @@ library(nngeo)
 
 # Swedish pharmacies and their coordinates downloaded from Pipos:
 # https://pipos.se/vara-tjanster/serviceanalys
-df_apotek_raw <- read_xlsx("../data/raw/pipos_apoteksvaror_2025-11-01.xlsx")
+# Determine data directory path (handle running from scripts/ or root)
+data_raw_dir <- if (dir.exists("data/raw")) "data/raw" else "../data/raw"
+df_apotek_raw <- read_xlsx(file.path(data_raw_dir, "pipos_apoteksvaror_2025-11-01.xlsx"))
 
 df_apotek <- df_apotek_raw |>
   filter(Serviceform == "Apotek") |>
@@ -43,12 +44,15 @@ df_apotek <- df_apotek_raw |>
 ) |>
   as_tibble() |>
   select(huvudman, namn, adress, postnummer, postort, kommun, lan, long, lat) |>
+  # Standardise county names (remove " län" suffix to match swemaps2)
+  mutate(lan = str_remove(lan, " län$")) |>
   # Create unique pharmacy_id (sequential numbering)
   mutate(pharmacy_id = row_number(), .before = 1)
 
 # Save prepared pharmacy data
+data_processed_dir <- if (dir.exists("data/processed")) "data/processed" else "../data/processed"
 df_apotek |>
-  write_rds("../data/raw/df_apotek.rds")
+  write_rds(file.path(data_processed_dir, "df_apotek.rds"))
 
 message(sprintf("✓ Prepared %d pharmacies with coordinates", nrow(df_apotek)))
 
@@ -57,9 +61,9 @@ message(sprintf("✓ Prepared %d pharmacies with coordinates", nrow(df_apotek)))
 # Prepare population squares (rutor) -----------------------------
 ##################################################################
 
-# Populated 1km square meters downloaded from SCB:
+# Populated 1km square metres downloaded from SCB:
 # https://www.scb.se/vara-tjanster/oppna-data/oppna-geodata/statistik-pa-rutor/
-df_rutor_raw <- st_read("../data/raw/befolkning_1km_2024.gpkg")
+df_rutor_raw <- st_read(file.path(data_raw_dir, "befolkning_1km_2024.gpkg"))
 
 df_rutor_raw <- df_rutor_raw |> 
   clean_names() |> 
@@ -112,7 +116,7 @@ df_rutor <- bind_rows(not_na_rutor, na_rutor_fixed) |>
 
 # Save population grid data
 df_rutor |>
-  write_rds("../data/raw/df_rutor.rds")
+  write_rds(file.path(data_processed_dir, "df_rutor.rds"))
 
 message(sprintf("✓ Prepared %d populated grid squares (total population: %s)",
                 nrow(df_rutor),

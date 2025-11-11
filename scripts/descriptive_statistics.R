@@ -14,7 +14,7 @@ library(matrixStats)
 # Load Results ----------------------------------------------------------------
 
 # Load a specific scenario (e.g., 300 pharmacies)
-results_300 <- readRDS("data/results/accessibility_300_pharmacies.rds")
+results_300 <- readRDS("data/results/accessibility_500_pharmacies.rds")
 
 # Or load all scenarios
 pharmacy_scenarios <- seq(50, 700, by = 50)
@@ -39,7 +39,18 @@ calculate_national_summary <- function(results) {
     summarise(
       mean_distance_km = weighted.mean(straight_line_distance_km, pop),
       median_distance_km = weightedMedian(straight_line_distance_km, pop),
-      max_distance_km = max(straight_line_distance_km)
+      p90_distance_km = {
+        # Calculate weighted 90th percentile
+        sorted_idx <- order(straight_line_distance_km)
+        cumulative_pop <- cumsum(pop[sorted_idx])
+        total_pop <- sum(pop)
+        threshold_idx <- which(cumulative_pop >= 0.9 * total_pop)[1]
+        straight_line_distance_km[sorted_idx[threshold_idx]]
+      },
+      max_distance_km = max(straight_line_distance_km),
+      total_population = sum(pop),
+      n_pharmacies = n_distinct(nearest_pharmacy_id),
+      population_per_pharmacy = sum(pop) / n_distinct(nearest_pharmacy_id)
     )
   
   # Driving distance coverage

@@ -346,8 +346,11 @@ calculate_driving_distances <- function(pharmacies, pop_grid) {
 #' @return Saves results to data/results/ directory
 analyse_accessibility <- function(n_pharmacies) {
 
+  # Start timing
+  start_time <- Sys.time()
+
   message(sprintf("Analysing accessibility with %d pharmacies...", n_pharmacies))
-  
+
   # Step 1: Allocate pharmacies across counties
   county_allocation <- df_rutor |> 
     group_by(lan) |> 
@@ -402,9 +405,14 @@ analyse_accessibility <- function(n_pharmacies) {
 
   output_file <- sprintf("%s/accessibility_%d_pharmacies.rds", output_dir, n_pharmacies)
   saveRDS(results, output_file)
-  
-  message(sprintf("  Results saved to %s\n", output_file))
-  
+
+  # Calculate runtime
+  end_time <- Sys.time()
+  runtime <- difftime(end_time, start_time, units = "mins")
+
+  message(sprintf("  Results saved to %s", output_file))
+  message(sprintf("  Runtime: %.1f minutes\n", as.numeric(runtime)))
+
   results
 }
 
@@ -422,8 +430,8 @@ analyse_accessibility <- function(n_pharmacies) {
 #
 # # Full analysis (all scenarios from 50 to 700 by increments of 50)
 # # WARNING: This will take several hours to complete!
-pharmacy_scenarios <- seq(50, 700, by = 50)
-results_list <- map(pharmacy_scenarios, analyse_accessibility)
+# pharmacy_scenarios <- seq(50, 700, by = 50)
+# results_list <- map(pharmacy_scenarios, analyse_accessibility)
 #
 # message("Analysis complete!")
 

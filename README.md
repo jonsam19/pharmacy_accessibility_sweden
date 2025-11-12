@@ -193,12 +193,11 @@ source("descriptive_statistics.R")
 
 | Metric | 100 Pharmacies | 300 Pharmacies | 500 Pharmacies | 1,408 Pharmacies (Current) |
 |--------|----------------|----------------|----------------|---------------------------|
-| Population per pharmacy | 105,608 | 35,202 | 21,335 | - |
-| Mean straight-line distance to pharmacy | 15km | 8km | 5km | - |
-| Median straight-line distance | 8km | 4km | 3km | - |
-| 90th percentile straight-line distance | 34km | 14km | 10km | - |
-| Population within 10km (driving) | 45% | 69% | 80% | - |
-| Population within 20km (driving) | 74% | 90% | 94% | - |
+| Population per pharmacy | 105,608 | 35,202 | 21,335 | 7,501 |
+| Mean straight-line distance to pharmacy | 15km | 8km | 5km | 3km |
+| Median straight-line distance | 8km | 4km | 3km | 1km |
+| Population within 10km (driving) | 45% | 69% | 80% | 87% |
+| Population within 20km (driving) | 74% | 90% | 94% | 96% |
 
 
 ## Policy Impact (Original 2023 Analysis)

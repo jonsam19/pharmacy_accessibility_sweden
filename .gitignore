@@ -3,13 +3,13 @@
 .env.local
 .env.*.local
 
-# Data directories
-data/raw/*               # Raw downloaded data files (large)
-data/processed/          # Processed data files (regenerable)
-data/results/            # Analysis output files
-!data/raw/.gitkeep       # Keep directory structure
-!data/processed/.gitkeep # Keep directory structure
-!data/results/.gitkeep   # Keep directory structure
+# Data directories - ignore all files except .gitkeep
+data/raw/**
+!data/raw/.gitkeep
+data/processed/**
+!data/processed/.gitkeep
+data/results/**
+!data/results/.gitkeep
 
 # Output files
 outputs/                 # Generated plots and tables

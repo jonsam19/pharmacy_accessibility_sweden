@@ -72,7 +72,7 @@ pharmacy-accessibility-sweden/
 ├── .env.example                                 # Template for API keys
 ├── scripts/
 │   ├── prepare_input_files.R                   # Step 1: Process raw data
-│   ├── pharmacy_accessibility_analysis.R       # Step 2: Run MCLP analysis
+│   ├── accessibility_analysis.R                # Step 2: Run MCLP analysis
 │   └── descriptive_statistics.R                # Step 3: Generate summaries
 ├── data/
 │   ├── raw/                                    # Raw data files (not in git)
@@ -160,7 +160,7 @@ Analyse pharmacy accessibility scenarios:
 
 ```r
 setwd("scripts")  # Work from scripts directory
-source("pharmacy_accessibility_analysis.R")
+source("accessibility_analysis.R")
 
 # Analyse specific scenarios (example with 300 pharmacies)
 result_300 <- analyse_accessibility(300)

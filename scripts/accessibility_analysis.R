@@ -426,7 +426,7 @@ analyse_accessibility <- function(n_pharmacies) {
 # The 300-pharmacy scenario is recommended as the starting point.
 #
 # # Single scenario (recommended to start)
-result_1408 <- analyse_accessibility(1408)
+# esult_300 <- analyse_accessibility(300)
 #
 # # Full analysis (all scenarios from 50 to 700 by increments of 50)
 # # WARNING: This will take several hours to complete!

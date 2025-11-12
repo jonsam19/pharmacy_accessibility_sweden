@@ -4,17 +4,18 @@
 # This script calculates summary statistics and creates visualisations from
 # the pharmacy accessibility analysis results
 #
-# Run this after pharmacy_accessibility_analysis.R
+# Run this after accessibility_analysis.R
 # =============================================================================
 
 library(tidyverse)
 library(sf)
 library(matrixStats)
+library(geosphere)
 
 # Load Results ----------------------------------------------------------------
 
 # Load a specific scenario (e.g., 300 pharmacies)
-results_300 <- readRDS("data/results/accessibility_500_pharmacies.rds")
+results_300 <- readRDS("data/results/accessibility_300_pharmacies.rds")
 
 # Or load all scenarios
 pharmacy_scenarios <- seq(50, 700, by = 50)
@@ -25,6 +26,8 @@ all_results <- map(
 ) |> 
   bind_rows()
 
+# load current market straight-line results
+current_market_dist <- readRDS("data/results/current_market_dist.rds")
 
 # National Summary Statistics -------------------------------------------------
 
@@ -198,6 +201,32 @@ ggplot() +
      colour = "Accessibility"
    ) +
    theme_void()
+
+
+# 5. Pharmacy Criticality Scores ----------------------------------------------
+
+# Load pharmacy criticality data if available
+if (file.exists("data/results/pharmacy_criticality.rds")) {
+  pharmacy_criticality <- readRDS("data/results/pharmacy_criticality.rds")
+
+  # Create plot showing criticality scores for all pharmacies
+  ggplot(pharmacy_criticality, aes(x = criticality_rank, y = person_km_impact)) +
+    geom_point(alpha = 0.6, colour = "steelblue") +
+    labs(
+      title = "Pharmacy Criticality Scores",
+      subtitle = "Impact (person-km) if each pharmacy were to close",
+      x = "Pharmacy Rank (1 = Most Critical)",
+      y = "Person-km Impact"
+    ) +
+    scale_y_continuous(labels = scales::comma) +
+    theme_minimal()
+
+  ggsave("outputs/pharmacy_criticality.png", width = 10, height = 6)
+
+  message("Pharmacy criticality plot created!")
+} else {
+  message("Note: pharmacy_criticality.rds not found. Run vulnerability_analysis.R first to create criticality plot.")
+}
 
 
 # Export Summary Tables -------------------------------------------------------

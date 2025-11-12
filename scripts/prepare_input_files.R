@@ -29,7 +29,7 @@ library(nngeo)
 # https://pipos.se/vara-tjanster/serviceanalys
 # Determine data directory path (handle running from scripts/ or root)
 data_raw_dir <- if (dir.exists("data/raw")) "data/raw" else "../data/raw"
-df_apotek_raw <- read_xlsx(file.path(data_raw_dir, "pipos_apoteksvaror_2025-11-01.xlsx"))
+df_apotek_raw <- read_xlsx(file.path(data_raw_dir, "pipos_apoteksvaror_2025-11-12.xlsx"))
 
 df_apotek <- df_apotek_raw |>
   filter(Serviceform == "Apotek") |>
